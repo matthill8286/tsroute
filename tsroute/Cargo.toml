@@ -1,0 +1,16 @@
+[package]
+name = "tsroute"
+description = "Typed TypeScript + TanStack Query clients generated from your existing axum routes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["axum", "typescript", "codegen", "openapi", "react-query"]
+categories = ["web-programming::http-server", "development-tools"]
+
+[dependencies]
+tsroute-macros = { path = "../tsroute-macros", version = "0.1.0" }
+axum = { version = "0.8", default-features = false }
+inventory = "0.3"
+ts-rs = "12"

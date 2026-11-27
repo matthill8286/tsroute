@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["tsroute", "tsroute-macros", "examples/todo-api"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/matthill8286/tsroute"
