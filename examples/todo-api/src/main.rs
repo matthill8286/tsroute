@@ -256,10 +256,11 @@ async fn main() {
 mod tests {
     /// Regenerates the TypeScript client locally; fails in CI if it's stale.
     #[test]
-    fn typescript_client_is_up_to_date() {
+    fn tsroute_export() {
         tsroute::Exporter::new()
             .client("web/src/api/client.ts")
             .react_query("web/src/api/hooks.ts")
+            .zod("web/src/api/schemas.ts")
             .sync()
             .unwrap();
     }

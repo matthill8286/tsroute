@@ -1,0 +1,23 @@
+{
+  "name": "vite-plugin-tsroute",
+  "version": "0.1.0",
+  "description": "Regenerate your tsroute TypeScript client whenever your axum (Rust) code changes",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./index.js" }
+  },
+  "files": ["index.js", "index.d.ts", "README.md"],
+  "keywords": ["vite", "vite-plugin", "rust", "axum", "typescript", "codegen", "tsroute"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matthill8286/tsroute.git",
+    "directory": "packages/vite-plugin-tsroute"
+  },
+  "peerDependencies": {
+    "vite": ">=5"
+  },
+  "engines": { "node": ">=18" }
+}

@@ -35,6 +35,8 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+mod zod;
+
 pub use ts_rs;
 pub use tsroute_macros::{delete, get, patch, post, put};
 
@@ -132,7 +134,7 @@ pub struct Collector {
     cfg: ts_rs::Config,
     seen: HashSet<TypeId>,
     /// TS name -> (rust type id, declaration)
-    decls: BTreeMap<String, (TypeId, String)>,
+    decls: BTreeMap<String, (TypeId, String, String)>,
     conflicts: Vec<String>,
 }
 
@@ -167,7 +169,7 @@ impl Collector {
             let id = TypeId::of::<T::WithoutGenerics>();
             let ident = T::ident(&self.cfg);
             match self.decls.get(&ident) {
-                Some((existing, _)) if *existing != id => self.conflicts.push(ident),
+                Some((existing, ..)) if *existing != id => self.conflicts.push(ident),
                 Some(_) => {}
                 None => {
                     let mut decl = String::new();
@@ -177,9 +179,10 @@ impl Collector {
                             decl.push('\n');
                         }
                     }
+                    let raw = T::decl(&self.cfg);
                     decl.push_str("export ");
-                    decl.push_str(&T::decl(&self.cfg));
-                    self.decls.insert(ident, (id, decl));
+                    decl.push_str(&raw);
+                    self.decls.insert(ident, (id, decl, raw));
                 }
             }
         }
@@ -240,6 +243,8 @@ pub struct Exporter {
     client: Option<PathBuf>,
     react_query: Option<PathBuf>,
     react_query_import: Option<String>,
+    zod: Option<PathBuf>,
+    zod_import: Option<String>,
     module_prefix: Option<String>,
 }
 
@@ -257,6 +262,20 @@ impl Exporter {
     /// Also write TanStack Query hooks (`createHooks(client)`) to this path.
     pub fn react_query(mut self, path: impl Into<PathBuf>) -> Self {
         self.react_query = Some(path.into());
+        self
+    }
+
+    /// Also write Zod schemas for every type, plus `routeSchemas` and
+    /// `withValidation(client)` for runtime response validation. Requires `zod` v4.
+    pub fn zod(mut self, path: impl Into<PathBuf>) -> Self {
+        self.zod = Some(path.into());
+        self
+    }
+
+    /// Override the import specifier the Zod file uses for the client
+    /// (defaults to a relative path, e.g. `./client`).
+    pub fn zod_import(mut self, specifier: impl Into<String>) -> Self {
+        self.zod_import = Some(specifier.into());
         self
     }
 
@@ -295,6 +314,13 @@ impl Exporter {
                 None => relative_import(hooks_path, &client_path),
             };
             out.push((hooks_path.clone(), render_hooks(&model, &import)));
+        }
+        if let Some(zod_path) = &self.zod {
+            let import = match &self.zod_import {
+                Some(s) => s.clone(),
+                None => relative_import(zod_path, &client_path),
+            };
+            out.push((zod_path.clone(), zod::render(&model, &import)));
         }
         Ok(out)
     }
@@ -391,6 +417,7 @@ struct RouteModel {
 
 struct Model {
     decls: Vec<String>,
+    raw_decls: BTreeMap<String, String>,
     type_names: Vec<String>,
     routes: Vec<RouteModel>,
 }
@@ -515,9 +542,15 @@ fn build_model(routes: &[&'static RouteInfo]) -> Result<Model, Error> {
     }
 
     let type_names = c.decls.keys().cloned().collect();
-    let decls = c.decls.into_values().map(|(_, d)| d).collect();
+    let raw_decls = c
+        .decls
+        .iter()
+        .map(|(k, (_, _, raw))| (k.clone(), raw.clone()))
+        .collect();
+    let decls = c.decls.into_values().map(|(_, d, _)| d).collect();
     Ok(Model {
         decls,
+        raw_decls,
         type_names,
         routes: models,
     })

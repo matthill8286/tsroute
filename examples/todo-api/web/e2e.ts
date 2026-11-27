@@ -1,5 +1,7 @@
 // End-to-end: call the running Rust server through the generated client.
+import { z } from "zod";
 import { ApiError, createClient } from "./src/api/client.ts";
+import { CreateTodoSchema, withValidation } from "./src/api/schemas.ts";
 
 const api = createClient({ baseUrl: process.env.API ?? "http://127.0.0.1:3000" });
 let failures = 0;
@@ -44,5 +46,22 @@ try {
 } catch (e) {
   check("422 validation error", e instanceof ApiError && e.status === 422, e);
 }
+
+// Runtime validation with the generated Zod schemas.
+const validated = withValidation(createClient({ baseUrl: process.env.API ?? "http://127.0.0.1:3000" }));
+const v = await validated.getTodo(a.id);
+check("withValidation passes real responses", v.id === a.id);
+check("withValidation handles generics", (await validated.listTodos()).total === 1);
+
+const lying = withValidation(
+  createClient({ fetch: async () => Response.json({ id: "not-a-number", title: 1 }) }),
+);
+try {
+  await lying.getTodo(1);
+  check("withValidation rejects bad data", false);
+} catch (e) {
+  check("withValidation rejects bad data", e instanceof z.ZodError, e);
+}
+check("input schemas work for forms", !CreateTodoSchema.safeParse({ title: "x", priority: "urgent" }).success);
 
 process.exit(failures ? 1 : 0);

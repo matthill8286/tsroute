@@ -5,7 +5,7 @@ import { createClient, type ErrorBody, type Routes } from "./api/client";
 import { createHooks, queryKeys } from "./api/hooks";
 
 const client = createClient({
-  baseUrl: "http://localhost:3000",
+  baseUrl: import.meta.env.VITE_API_URL ?? "http://localhost:3000",
   headers: () => ({ authorization: `Bearer ${localStorage.getItem("token") ?? ""}` }),
 });
 const api = createHooks(client);

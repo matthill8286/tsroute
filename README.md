@@ -1,6 +1,6 @@
 # tsroute
 
-**Typed TypeScript clients and TanStack Query hooks, generated from the axum handlers you already have.**
+**Typed TypeScript clients, TanStack Query hooks and Zod schemas, generated from the axum handlers you already have.**
 
 No RPC framework to adopt, no OpenAPI spec to maintain, no second schema. Add one attribute to each handler and your React app gets a fully typed client: path params, query, body, response *and* error types. A test in CI makes sure the frontend can never drift from the API.
 
@@ -29,12 +29,12 @@ create.error?.body.message;                    // typed as ErrorBody
 
 The Rust-to-TypeScript options today make you pick a trade-off:
 
-| | Keeps your REST routes | No extra schema | Typed errors | React Query hooks | CI drift check |
-|---|---|---|---|---|---|
-| OpenAPI (utoipa/aide) + codegen | yes | no: spec + generator step | manual | via 3rd-party generator | manual |
-| rspc / qubit / taut-rpc | no: RPC only | yes | partly | yes | no |
-| ts-rs alone | yes | yes | no | no: write fetch calls by hand | no |
-| **tsroute** | **yes** | **yes** | **yes** | **yes** | **built in** |
+| | Keeps your REST routes | No extra schema | Typed errors | React Query hooks | Runtime validation | CI drift check |
+|---|---|---|---|---|---|---|
+| OpenAPI (utoipa/aide) + codegen | yes | no: spec + generator step | manual | via 3rd-party generator | via 3rd-party generator | manual |
+| rspc / qubit / taut-rpc | no: RPC only | yes | partly | yes | partly | no |
+| ts-rs alone | yes | yes | no | no: write fetch calls by hand | no | no |
+| **tsroute** | **yes** | **yes** | **yes** | **yes** | **yes (Zod)** | **built in** |
 
 ## Install
 
@@ -76,10 +76,11 @@ Handler doc comments become JSDoc on the generated functions and hooks.
 
 ```rust
 #[test]
-fn typescript_client_is_up_to_date() {
+fn tsroute_export() {
     tsroute::Exporter::new()
         .client("web/src/api/client.ts")
         .react_query("web/src/api/hooks.ts") // optional
+        .zod("web/src/api/schemas.ts")       // optional
         .sync()
         .unwrap();
 }
@@ -93,6 +94,35 @@ generated TypeScript is out of date; re-run the export. Stale files:
 ```
 
 Use `.only_module("my_app::public")` to leave internal routes out of the client.
+
+## Runtime validation with Zod
+
+TypeScript types disappear at runtime. If a proxy, an old deploy or a bug sends the wrong shape, nothing stops it reaching your UI. Add `.zod("…/schemas.ts")` and tsroute also generates a [Zod](https://zod.dev) v4 schema for every type (tested with Zod 4.6):
+
+```ts
+import { createClient } from "./api/client";
+import { CreateTodoSchema, routeSchemas, withValidation } from "./api/schemas";
+
+// Every response is parsed; bad data throws a ZodError instead of rendering.
+const api = withValidation(createClient({ baseUrl: "/api" }));
+
+// Input schemas plug straight into forms, e.g. react-hook-form's zodResolver.
+useForm({ resolver: zodResolver(CreateTodoSchema) });
+
+routeSchemas.getTodo.error; // the ErrorBody schema, for parsing ApiError bodies
+```
+
+It handles everything serde and ts-rs produce: tagged, untagged and unit enums, `Option`, maps, tuples, generics (`PageSchema(TodoSchema)`) and recursive types (via `z.lazy`). The generated file ends with a compile-time check proving each schema's output type matches its TypeScript type, so a generator bug fails `tsc` rather than slipping through.
+
+## Live regeneration with Vite
+
+[`vite-plugin-tsroute`](packages/vite-plugin-tsroute) watches your Rust code while `vite dev` runs. Save a `.rs` file and the client, hooks and schemas regenerate. TypeScript then flags every call site that no longer matches. Rust compile errors appear in Vite's error overlay, and `vite build` regenerates first.
+
+```ts
+// vite.config.ts
+import tsroute from "vite-plugin-tsroute";
+export default defineConfig({ plugins: [react(), tsroute({ crate: "../api" })] });
+```
 
 ## What's understood
 
@@ -123,14 +153,15 @@ Other extractors (`State`, `Extension`, headers, …) are ignored. Compile-time 
 
 ```sh
 cd examples/todo-api
-cargo test                      # generate web/src/api/*.ts
 cargo run &                     # start the API on :3000
-cd web && npm i && npm run typecheck && npm run e2e
+cd web && npm i
+npm run dev                     # React app; edit ../src/main.rs and watch the types update
+npm run typecheck && npm run e2e
 ```
 
 ## Status
 
-Early (0.1). Planned: multipart and form bodies, `Vec` query params via `serde_qs`, streaming/SSE responses, an `axum::Router` extension trait as an alternative to `routes!`, and optional Zod/Valibot validators.
+Early (0.2). Planned: multipart and form bodies, `Vec` query params via `serde_qs`, streaming/SSE responses, an `axum::Router` extension trait as an alternative to `routes!`, and MSW mock handlers.
 
 ## License
 
