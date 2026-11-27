@@ -1,15 +1,30 @@
 {
-  "name": "vite-plugin-tsroute",
+  "name": "@atomic-ui/vite-plugin-tsroute",
   "version": "0.1.0",
   "description": "Regenerate your tsroute TypeScript client whenever your axum (Rust) code changes",
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
   "exports": {
-    ".": { "types": "./index.d.ts", "default": "./index.js" }
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
   },
-  "files": ["index.js", "index.d.ts", "README.md"],
-  "keywords": ["vite", "vite-plugin", "rust", "axum", "typescript", "codegen", "tsroute"],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "rust",
+    "axum",
+    "typescript",
+    "codegen",
+    "tsroute"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -19,5 +34,15 @@
   "peerDependencies": {
     "vite": ">=5"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://github.com/matthill8286/tsroute/tree/main/packages/vite-plugin-tsroute#readme",
+  "bugs": {
+    "url": "https://github.com/matthill8286/tsroute/issues"
+  }
 }

@@ -116,11 +116,11 @@ It handles everything serde and ts-rs produce: tagged, untagged and unit enums, 
 
 ## Live regeneration with Vite
 
-[`vite-plugin-tsroute`](packages/vite-plugin-tsroute) watches your Rust code while `vite dev` runs. Save a `.rs` file and the client, hooks and schemas regenerate. TypeScript then flags every call site that no longer matches. Rust compile errors appear in Vite's error overlay, and `vite build` regenerates first.
+[`@atomic-ui/vite-plugin-tsroute`](packages/vite-plugin-tsroute) watches your Rust code while `vite dev` runs. Save a `.rs` file and the client, hooks and schemas regenerate. TypeScript then flags every call site that no longer matches. Rust compile errors appear in Vite's error overlay, and `vite build` regenerates first.
 
 ```ts
 // vite.config.ts
-import tsroute from "vite-plugin-tsroute";
+import tsroute from "@atomic-ui/vite-plugin-tsroute";
 export default defineConfig({ plugins: [react(), tsroute({ crate: "../api" })] });
 ```
 

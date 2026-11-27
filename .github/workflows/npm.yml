@@ -1,0 +1,25 @@
+name: Publish Vite plugin
+# Run manually from the Actions tab (or push a tag like vite-plugin-v0.1.0).
+on:
+  workflow_dispatch:
+  push:
+    tags: ["vite-plugin-v*"]
+permissions:
+  contents: read
+  id-token: write # npm provenance
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vite-plugin-tsroute
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: node --check index.js
+      - run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
