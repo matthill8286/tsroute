@@ -12,6 +12,20 @@ jobs:
       - run: cargo test
         env: { CI: "true" }
       # Publishes tsroute-macros, then tsroute (the example crate has publish = false).
-      - run: cargo publish --workspace --exclude todo-api
+      # A version that is already on crates.io is skipped, so re-pushing a tag passes.
+      - name: Publish crates
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          for crate in tsroute-macros tsroute; do
+            version=$(cargo metadata --no-deps --format-version 1 \
+              | jq -r --arg name "$crate" '.packages[] | select(.name == $name) | .version')
+            status=$(curl -s -o /dev/null -w '%{http_code}' \
+              -A "tsroute-release (github.com/matthill8286/tsroute)" \
+              "https://crates.io/api/v1/crates/$crate/$version")
+            if [ "$status" = "200" ]; then
+              echo "$crate $version is already on crates.io, skipping."
+            else
+              cargo publish -p "$crate"
+            fi
+          done
